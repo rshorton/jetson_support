@@ -1,0 +1,1 @@
+export HISTFILE=/jetson_ws/.bash_history_jetson

@@ -101,6 +101,8 @@ COPY dl_whisper_models.py /tmp
 RUN mkdir -p /opt/whisper/models/turbo && \
     python /tmp/dl_whisper_models.py --model_dir /opt/whisper/models/turbo --model turbo
 
+RUN pip install numpy-ringbuffer
+
 WORKDIR /jetson_ws
 USER $USERNAME
 

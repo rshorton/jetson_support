@@ -241,7 +241,8 @@ elif [ $MODEL == $LLAMA2_7B_GGUF ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf TheBloke/Llama-2-7b-Chat-GGUF \
-    --port 8000
+    --port 8000 \
+    --chat-template chatml
 
 else
   echo "Invalid model selection: $MODEL"

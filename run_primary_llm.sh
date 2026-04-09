@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Run vllm/llama_cpp and serve the primary model used for chat and reasoning.
-# Access using localhost:8000
+# Run vllm/llama_cpp and serve the specified model
+# Access using localhost and by port 8000 unless specified otherwise
+
+PORT=8000
 
 QWEN35_35B=1
 QWEN35_9B=2
@@ -17,14 +19,44 @@ GEMMA_4_E2B=11
 GLM47_FLASH_GGUF=12
 LLAMA2_7B_GGUF=13
 
-MODEL=$LLAMA2_7B_GGUF
+DEF_REASONING_MODEL=$GLM47_FLASH_GGUF
+DEF_CHAT_MODEL=$LLAMA2_7B_GGUF
 
+MODEL=$DEF_REASONING_MODEL
+
+while getopts ":ht:p:" option; do
+  case $option in
+    h)
+      echo "Syntax: -p <port number> -t <type>"
+      echo "where <type> is either 'chat' or 'reasoning'"
+      exit
+      ;;
+    p)
+      PORT=$OPTARG 
+      ;;
+    t)
+      if [ $OPTARG=='chat' ]; then
+        MODEL=$LLAMA2_7B_GGUF
+      elif [ $OPTARG=='reasoning' ]; then
+        MODEL=$DEF_REASONING_MODEL
+      else
+        echo "Error: Invalid model type: $OPTARG"
+        exit
+      fi
+      ;;    
+    \?) # Invalid option
+      echo "Error: Invalid option"
+      exit
+      ;;
+   esac
+done
+
+# This avoids OOM during model loading
 sudo sysctl -w vm.drop_caches=3
 
 COMMON_ARGS="-e HF_TOKEN=$HF_TOKEN \
     -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface"
-
 
 if [ $MODEL == $QWEN35_35B ]; then
   # Max context size: 262144
@@ -35,7 +67,7 @@ if [ $MODEL == $QWEN35_35B ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve Kbenkhaled/Qwen3.5-35B-A3B-quantized.w4a16 \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.6 \
     --enable-prefix-caching \
     --reasoning-parser qwen3 \
@@ -55,7 +87,7 @@ elif [ $MODEL == $QWEN35_9B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve apolo13x/Qwen3.5-9B-quantized.w4a16 \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.5 \
     --enable-prefix-caching \
     --reasoning-parser qwen3 \
@@ -75,7 +107,7 @@ elif [ $MODEL == $QWEN35_4B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve cyankiwi/Qwen3.5-4B-AWQ-4bit \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.3 \
     --enable-prefix-caching \
     --reasoning-parser qwen3 \
@@ -94,7 +126,7 @@ elif [ $MODEL == $QWEN35_08B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve Qwen/Qwen3.5-0.8B \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.3 \
     --enable-prefix-caching \
     --reasoning-parser qwen3 \
@@ -117,7 +149,7 @@ elif [ $MODEL == $NEMO3_NANO_30B ]; then
     --header=\"Authorization: Bearer \$HF_TOKEN\" \
     https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4/resolve/main/nano_v3_reasoning_parser.py && \
     vllm serve stelterlab/NVIDIA-Nemotron-3-Nano-30B-A3B-AWQ \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.4 \
     --trust-remote-code \
     --enable-auto-tool-choice \
@@ -136,7 +168,7 @@ elif [ $MODEL == $QWEN3_30B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve RedHatAI/Qwen3-30B-A3B-quantized.w4a16 \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.5 \
     --enable-prefix-caching \
     --reasoning-parser qwen3 \
@@ -160,7 +192,7 @@ elif [ $MODEL == $MINISTRAL_3_REASONING_8B ]; then
     -v $(pwd)/jetson_support:/jetson_support \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve mistralai/Ministral-3-8B-Reasoning-2512 \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.5 \
     --enable-auto-tool-choice \
     --tool-call-parser mistral \
@@ -172,7 +204,7 @@ elif [ $MODEL == $MINISTRAL_3_REASONING_8B ]; then
 
 elif [ $MODEL == $GLM_47_FLASH ]; then
 
-# Doesn't run on latest jetson vllm (as of 4/1/26)
+  # Doesn't run on latest jetson vllm (as of 4/1/26)
 
   sudo docker run -it --rm --runtime=nvidia --network host \
     -e HF_TOKEN=$HF_TOKEN \
@@ -180,7 +212,7 @@ elif [ $MODEL == $GLM_47_FLASH ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin \
     vllm serve cyankiwi/GLM-4.7-Flash-AWQ-4bit \
-    --port 8000 \
+    --port $PORT \
     --gpu-memory-utilization 0.6 \
     --tool-call-parser glm47 \
     --max-model-len 100001 \
@@ -201,8 +233,7 @@ elif [ $MODEL == $GEMMA_4_26B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf ggml-org/gemma-4-26B-A4B-it-GGUF:Q4_K_M \
-    --port 8000
-
+    --port $PORT
 
 elif [ $MODEL == $GEMMA_4_E4B ]; then
 
@@ -212,8 +243,7 @@ elif [ $MODEL == $GEMMA_4_E4B ]; then
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf ggml-org/gemma-4-E4B-it-GGUF:Q4_K_M \
-    --port 8000
-
+    --port $PORT
 
 elif [ $MODEL == $GEMMA_4_E2B ]; then
   
@@ -222,7 +252,7 @@ elif [ $MODEL == $GEMMA_4_E2B ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf ggml-org/gemma-4-E2B-it-GGUF:Q8_0 \
-    --port 8000
+    --port $PORT
 
 elif [ $MODEL == $GLM47_FLASH_GGUF ]; then
   #GPU MEM 28.4G
@@ -232,7 +262,7 @@ elif [ $MODEL == $GLM47_FLASH_GGUF ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf unsloth/GLM-4.7-Flash-GGUF \
-    --port 8000
+    --port $PORT
 
 elif [ $MODEL == $LLAMA2_7B_GGUF ]; then
 
@@ -241,7 +271,7 @@ elif [ $MODEL == $LLAMA2_7B_GGUF ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf TheBloke/Llama-2-7b-Chat-GGUF \
-    --port 8000 \
+    --port $PORT \
     --chat-template chatml
 
 else

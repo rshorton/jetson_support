@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+
 echo "Starting STT/TTS processes"
 
 echo "STT..."
@@ -11,8 +13,5 @@ echo "TTS..."
 cd ${WS_DIR}/jetson_support
 python3 -m piper.http_server -m en_US-amy-medium --cuda 2>&1 | tee ${WS_DIR}/jetson_support/tts.log &
 
-sleep 20
 echo "Cntrl-c to exit"
-# wait for Ctrl-C
-( trap exit SIGINT ; while [ 1 ]; do sleep 60; done )
-echo "STT/TTS stopping"
+wait

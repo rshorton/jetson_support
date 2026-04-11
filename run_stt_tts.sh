@@ -15,3 +15,4 @@ python3 -m piper.http_server -m en_US-amy-medium --cuda 2>&1 | tee ${WS_DIR}/jet
 
 echo "Cntrl-c to exit"
 wait
+

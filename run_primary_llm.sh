@@ -14,15 +14,17 @@ QWEN3_30B=6
 MINISTRAL_3_REASONING_8B=7
 GLM_47_FLASH=8
 GEMMA_4_26B=9
-GEMMA_4_E4B=10
-GEMMA_4_E2B=11
-GLM47_FLASH_GGUF=12
-LLAMA2_7B_GGUF=13
+GEMMA_4_26B_VLLM=10
+GEMMA_4_E4B=11
+GEMMA_4_E2B=12
+GEMMA_4_E2B_VLLM=13
+GLM47_FLASH_GGUF=14
+LLAMA2_7B_GGUF=15
 
 DEF_REASONING_MODEL=$GLM47_FLASH_GGUF
-DEF_CHAT_MODEL=$LLAMA2_7B_GGUF
+DEF_CHAT_MODEL=$GEMMA_4_26B_VLLM
 
-MODEL=$DEF_REASONING_MODEL
+MODEL=$GEMMA_4_26B_VLLM
 
 while getopts ":ht:p:" option; do
   case $option in
@@ -235,6 +237,20 @@ elif [ $MODEL == $GEMMA_4_26B ]; then
     llama-server -hf ggml-org/gemma-4-26B-A4B-it-GGUF:Q4_K_M \
     --port $PORT
 
+elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
+  
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
+    ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
+    vllm serve cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit \
+    --gpu-memory-utilization 0.5 \
+    --enable-auto-tool-choice \
+    --reasoning-parser gemma4 \
+    --tool-call-parser gemma4 \
+    --port $PORT
+
 elif [ $MODEL == $GEMMA_4_E4B ]; then
 
   sudo docker run -it --rm --pull always --runtime=nvidia --network host \
@@ -252,6 +268,20 @@ elif [ $MODEL == $GEMMA_4_E2B ]; then
     $COMMON_ARGS \
     ghcr.io/nvidia-ai-iot/llama_cpp:gemma4-jetson-orin \
     llama-server -hf ggml-org/gemma-4-E2B-it-GGUF:Q8_0 \
+    --port $PORT
+
+elif [ $MODEL == $GEMMA_4_E2B_VLLM ]; then
+  
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
+    ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
+    vllm serve google/gemma-4-E2B-it \
+    --gpu-memory-utilization 0.4 \
+    --enable-auto-tool-choice \
+    --reasoning-parser gemma4 \
+    --tool-call-parser gemma4 \
     --port $PORT
 
 elif [ $MODEL == $GLM47_FLASH_GGUF ]; then

@@ -3,25 +3,12 @@
 This package contains scripts for building and running containers for hosting processes that require Jetson-specific hardware acceleration such as LLMs, TTS, STT, etc.
 
 
-Run model for thinking/instruction:
+Run model for thinking/instruction/chat/vlm, currently Gemma 4 26B:
 
 ```
-jetson_support/run_primary_llm.sh -p 8000 -t reasoning
+jetson_support/run_primary_llm.sh
 ```
-
-Run model for chat:
-
-```
-jetson_support/run_primary_llm.sh -p 8003 -t chat
-```
-
-Run model for vision:
-
-```
-jetson_support/run_vision_llm.sh
-```
-
-* Uses port 8001
+* Uses port 800
 
 Run stt/tts packages:
 

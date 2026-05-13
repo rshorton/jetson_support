@@ -8,7 +8,7 @@ Run model for thinking/instruction/chat/vlm, currently Gemma 4 26B:
 ```
 jetson_support/run_primary_llm.sh
 ```
-* Uses port 800
+* Uses port 8000
 
 Run stt/tts packages:
 

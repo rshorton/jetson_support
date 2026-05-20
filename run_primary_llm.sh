@@ -15,11 +15,12 @@ MINISTRAL_3_REASONING_8B=7
 GLM_47_FLASH=8
 GEMMA_4_26B=9
 GEMMA_4_26B_VLLM=10
-GEMMA_4_E4B=11
-GEMMA_4_E2B=12
-GEMMA_4_E2B_VLLM=13
-GLM47_FLASH_GGUF=14
-LLAMA2_7B_GGUF=15
+GEMMA_4_31B_VLLM=11
+GEMMA_4_E4B=12
+GEMMA_4_E2B=13
+GEMMA_4_E2B_VLLM=14
+GLM47_FLASH_GGUF=15
+LLAMA2_7B_GGUF=16
 
 DEF_REASONING_MODEL=$GLM47_FLASH_GGUF
 DEF_CHAT_MODEL=$GEMMA_4_26B_VLLM
@@ -252,6 +253,23 @@ elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
     --tool-call-parser gemma4 \
     --port $PORT \
     --chat-template /jetson_support/fixed_tool_chat_template_gemma4.jinja 
+
+elif [ $MODEL == $GEMMA_4_31B_VLLM ]; then
+  
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
+    -v $HOME/robot_ws/jetson_support:/jetson_support \
+    ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
+    vllm serve cyankiwi/gemma-4-31B-it-AWQ-4bit  \
+    --gpu-memory-utilization 0.6 \
+    --enable-auto-tool-choice \
+    --reasoning-parser gemma4 \
+    --tool-call-parser gemma4 \
+    --max-model-len 64000 \
+    --port $PORT \
+    --chat-template /jetson_support/fixed_tool_chat_template_gemma4.jinja
 
 elif [ $MODEL == $GEMMA_4_E4B ]; then
 

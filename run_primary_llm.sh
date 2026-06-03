@@ -19,10 +19,11 @@ GEMMA_4_31B_VLLM=11
 GEMMA_4_E4B=12
 GEMMA_4_E2B=13
 GEMMA_4_E2B_VLLM=14
-GLM47_FLASH_GGUF=15
-LLAMA2_7B_GGUF=16
+GEMMA_4_E4B_VLLM=15
+GLM47_FLASH_GGUF=16
+LLAMA2_7B_GGUF=17
 
-DEF_REASONING_MODEL=$GLM47_FLASH_GGUF
+DEF_REASONING_MODEL=$GEMMA_4_26B_VLLM
 DEF_CHAT_MODEL=$GEMMA_4_26B_VLLM
 
 MODEL=$GEMMA_4_26B_VLLM
@@ -250,7 +251,9 @@ elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
     --gpu-memory-utilization 0.5 \
     --enable-auto-tool-choice \
     --reasoning-parser gemma4 \
-    --tool-call-parser gemma4 \
+    --tool-call-parser my_fixed_gemma_parser \
+    --tool-parser-plugin /jetson_support/fixed_gemma4_tool_parser_665f9c4.py \
+    --max_model_len 64000 \
     --port $PORT \
     --chat-template /jetson_support/fixed_tool_chat_template_gemma4.jinja 
 
@@ -296,13 +299,34 @@ elif [ $MODEL == $GEMMA_4_E2B_VLLM ]; then
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
+    -v $HOME/robot_ws/jetson_support:/jetson_support \
     ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
     vllm serve google/gemma-4-E2B-it \
     --gpu-memory-utilization 0.4 \
     --enable-auto-tool-choice \
     --reasoning-parser gemma4 \
     --tool-call-parser gemma4 \
-    --port $PORT
+    --max-model-len 64000 \
+    --port $PORT \
+    --chat-template /jetson_support/fixed_tool_chat_template_gemma4.jinja 
+
+elif [ $MODEL == $GEMMA_4_E4B_VLLM ]; then
+  
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
+    -v $HOME/robot_ws/jetson_support:/jetson_support \
+    ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
+    vllm serve google/gemma-4-E4B-it \
+    --gpu-memory-utilization 0.4 \
+    --enable-auto-tool-choice \
+    --reasoning-parser gemma4 \
+    --tool-call-parser gemma4 \
+    --max-model-len 64000 \
+    --port $PORT \
+    --chat-template /jetson_support/fixed_tool_chat_template_gemma4.jinja 
+
 
 elif [ $MODEL == $GLM47_FLASH_GGUF ]; then
   #GPU MEM 28.4G

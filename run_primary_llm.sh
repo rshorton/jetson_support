@@ -240,14 +240,16 @@ elif [ $MODEL == $GEMMA_4_26B ]; then
     --port $PORT
 
 elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
-  
+  # This revision is no longer available.  Used cached version for now.
+  #  vllm serve cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit --revision 519bdca117c8f10a9a578d1b70b5c0d54c59b7ba 
+
   sudo docker run -it --rm --pull always --runtime=nvidia --network host \
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
     -v $HOME/dev/jetson-containers/data/models/huggingface:/data/models/huggingface \
     -v $HOME/robot_ws/jetson_support:/jetson_support \
     ghcr.io/nvidia-ai-iot/vllm:gemma4-jetson-orin \
-    vllm serve cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit --revision 519bdca117c8f10a9a578d1b70b5c0d54c59b7ba \
+    vllm serve --model /data/models/huggingface/models--cyankiwi--gemma-4-26B-A4B-it-AWQ-4bit/snapshots/519bdca117c8f10a9a578d1b70b5c0d54c59b7ba \
     --gpu-memory-utilization 0.5 \
     --enable-auto-tool-choice \
     --reasoning-parser gemma4 \

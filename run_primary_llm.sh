@@ -3,6 +3,9 @@
 # Run vllm/llama_cpp and serve the specified model
 # Access using localhost and by port 8000 unless specified otherwise
 
+# FIX - Only the command for gemma 4 26B (VLLM) has been updated for Jetpack 7.2.1 update. 
+# Update other models as needed.
+
 PORT=8000
 
 QWEN35_35B=1
@@ -240,6 +243,24 @@ elif [ $MODEL == $GEMMA_4_26B ]; then
     --port $PORT
 
 elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -v ~/.cache/vllm:/root/.cache/vllm \
+    vllm/vllm-openai:latest NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16 \
+    --gpu-memory-utilization 0.5 \
+    --enforce-eager \
+    --trust-remote-code \
+    --reasoning-parser gemma4 \
+    --enable-auto-tool-choice \
+    --tool-call-parser gemma4 \
+    --default-chat-template-kwargs '{"enable_thinking":true}' \
+    --speculative-config '{"method":"mtp","model":"google/gemma-4-26B-A4B-it-assistant","num_speculative_tokens":3}' \
+    --max_model_len 64000 \
+    --port $PORT
+
+elif [ $MODEL == $GEMMA_4_26B_VLLM_JP62 ]; then
   # This revision is no longer available.  Used cached version for now.
   #  vllm serve cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit --revision 519bdca117c8f10a9a578d1b70b5c0d54c59b7ba 
 

@@ -8,7 +8,7 @@ xhost +local:docker
 WS_DIR_INSIDE="/jetson_ws"
 
 # FIX, is privileged still needed?
-docker run -it --privileged --net=host  --pid=host --ipc=host --runtime nvidia \
+docker run -it --gpus all --privileged --net=host  --pid=host --ipc=host --runtime nvidia \
   -e HOST_WS_DIR=${WS_DIR} \
   -e WS_DIR=${WS_DIR_INSIDE} \
   -e DISPLAY=unix:0 \

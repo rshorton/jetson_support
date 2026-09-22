@@ -6,7 +6,7 @@ echo "Starting STT/TTS processes"
 
 echo "STT..."
 cd ${WS_DIR}/src/elsabot_speech_input/elsabot_speech_input
-python -m server.main 2>&1 | tee ${WS_DIR}/jetson_support/sst.log &
+python3 -m server.main 2>&1 | tee ${WS_DIR}/jetson_support/sst.log &
 
 echo "TTS..."
 

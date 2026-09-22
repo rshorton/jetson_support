@@ -25,7 +25,8 @@ THIS_SCRIPT=$(readlink -e "$0")
 SCRIPT_DIR=$(dirname "$THIS_SCRIPT")
 cd $SCRIPT_DIR
 
-BASE_IMAGE="nvcr.io/nvidia/l4t-jetpack:r36.4.0"
+BASE_IMAGE="nvcr.io/nvidia/cuda-dl-base:26.05-cuda13.2-devel-ubuntu24.04"
+
 
 docker build $NO_CACHE_ARG \
    --build-arg USERNAME=${USER} \

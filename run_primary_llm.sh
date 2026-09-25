@@ -17,7 +17,7 @@ QWEN3_30B=6
 MINISTRAL_3_REASONING_8B=7
 GLM_47_FLASH=8
 GEMMA_4_26B=9
-GEMMA_4_26B_VLLM=10
+GEMMA_4_26B_VLLM_JP62=10
 GEMMA_4_31B_VLLM=11
 GEMMA_4_E4B=12
 GEMMA_4_E2B=13
@@ -26,10 +26,19 @@ GEMMA_4_E4B_VLLM=15
 GLM47_FLASH_GGUF=16
 LLAMA2_7B_GGUF=17
 
+#Running on JP 7.2
+GEMMA_4_26B_VLLM_JP72=18
+NEMOTRON_35_LIGHTNING=19
+COSMOS3_EDGE=20
+QWEN38_27B=21
+MUSE_GLIMMER_30B=22
+NEMOTRON_3_NANO_OMNI=23
+
 DEF_REASONING_MODEL=$GEMMA_4_26B_VLLM
 DEF_CHAT_MODEL=$GEMMA_4_26B_VLLM
 
-MODEL=$GEMMA_4_26B_VLLM
+#MODEL=$GEMMA_4_26B_VLLM
+MODEL=$GEMMA_4_26B_VLLM_JP72
 
 while getopts ":ht:p:" option; do
   case $option in
@@ -242,24 +251,6 @@ elif [ $MODEL == $GEMMA_4_26B ]; then
     llama-server -hf ggml-org/gemma-4-26B-A4B-it-GGUF:Q4_K_M \
     --port $PORT
 
-elif [ $MODEL == $GEMMA_4_26B_VLLM ]; then
-  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
-    -e HF_TOKEN=$HF_TOKEN \
-    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
-    -v ~/.cache/huggingface:/root/.cache/huggingface \
-    -v ~/.cache/vllm:/root/.cache/vllm \
-    vllm/vllm-openai:latest NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16 \
-    --gpu-memory-utilization 0.5 \
-    --enforce-eager \
-    --trust-remote-code \
-    --reasoning-parser gemma4 \
-    --enable-auto-tool-choice \
-    --tool-call-parser gemma4 \
-    --default-chat-template-kwargs '{"enable_thinking":true}' \
-    --speculative-config '{"method":"mtp","model":"google/gemma-4-26B-A4B-it-assistant","num_speculative_tokens":3}' \
-    --max_model_len 64000 \
-    --port $PORT
-
 elif [ $MODEL == $GEMMA_4_26B_VLLM_JP62 ]; then
   # This revision is no longer available.  Used cached version for now.
   #  vllm serve cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit --revision 519bdca117c8f10a9a578d1b70b5c0d54c59b7ba 
@@ -370,6 +361,146 @@ elif [ $MODEL == $LLAMA2_7B_GGUF ]; then
     llama-server -hf TheBloke/Llama-2-7b-Chat-GGUF \
     --port $PORT \
     --chat-template chatml
+
+elif [ $MODEL == $GEMMA_4_26B_VLLM_JP72 ]; then
+  # NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16
+  # cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit 
+
+  # Enforce eager seems to increase latency
+  #     --enforce-eager 
+
+  sudo docker run -it --rm --pull always --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -v ~/.cache/vllm:/root/.cache/vllm \
+    vllm/vllm-openai:latest NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16 \
+    --gpu-memory-utilization 0.5 \
+    --max-model-len 64000 \
+    --trust-remote-code \
+    --reasoning-parser gemma4 \
+    --enable-auto-tool-choice \
+    --tool-call-parser gemma4 \
+    --speculative-config '{"method":"mtp","model":"google/gemma-4-26B-A4B-it-assistant","num_speculative_tokens":3}' \
+    --default-chat-template-kwargs '{"enable_thinking":false}' \
+    --port $PORT
+
+elif [ $MODEL == $NEMOTRON_35_LIGHTNING ]; then
+  # No vlm
+
+  docker run --pull always --rm -it \
+    --name nemotron35-vllm \
+    --runtime=nvidia \
+    --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -v ~/.cache/vllm:/root/.cache/vllm \
+    vllm/vllm-openai:v0.27.1 \
+    --model nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4 \
+    --served-model-name nemotron35 \
+    --reasoning-parser nemotron_v3 \
+    --enable-auto-tool-choice \
+    --tool-call-parser qwen3_coder \
+    --max-model-len 128000 \
+    --trust-remote-code \
+    --kv-cache-dtype bfloat16 \
+    --gpu-memory-utilization 0.7 \
+    --max-num-batched-tokens 16384 \
+    --enable-prefix-caching \
+    --speculative_config.method dspark \
+    --speculative_config.model nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4-DSpark \
+    --speculative_config.num_speculative_tokens 5 \
+    --speculative_config.kv_cache_dtype bfloat16 \
+    --mamba-backend flashinfer \
+    --mamba-ssm-cache-dtype float16 \
+    --enable-mamba-cache-stochastic-rounding \
+    --mamba-cache-philox-rounds 5 \
+    --mamba-cache-mode align \
+    --port $PORT
+
+elif [ $MODEL == $COSMOS3_EDGE ]; then
+  # Doesn't appear to support toolcalling
+
+  sudo docker run -it --rm --pull always \
+    --runtime=nvidia --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
+    -v ~/.cache/huggingface:/root/.cache/huggingface \
+    -v ~/.cache/vllm:/root/.cache/vllm \
+    --entrypoint "" \
+    vllm/vllm-openai:cosmos3 \
+    vllm serve nvidia/Cosmos3-Edge \
+    --enable-auto-tool-choice \
+    --tool-call-parser pythonic \
+    --host 0.0.0.0 \
+    --trust-remote-code \
+    --max-model-len 16384 \
+    --gpu-memory-utilization 0.6 \
+    --port $PORT
+
+elif [ $MODEL == $QWEN38_27B ]; then
+  mkdir -p ~/.model_logs/llama_server
+  docker run --gpus all --rm -it \
+    --runtime nvidia \
+    --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v ~/.model_logs/llama_server:/logs \
+    -v ~/.cache/huggingface:/data/models/huggingface \
+    ghcr.io/nvidia-ai-iot/llama_cpp:latest-jetson-orin \
+    llama-server \
+      -hf unsloth/Qwen3.8-27B-GGUF:Q4_K_M \
+      -ngl all \
+      --spec-type draft-mtp \
+      --temp 1.0 \
+      --top-k 20 \
+      --min-p 0.0 \
+      --host 0.0.0.0 \
+      --jinja \
+      --reasoning-preserve \
+      --chat-template-kwargs '{"preserve_thinking": true, "reasoning_effort": "medium"}' \
+      --log-prompts-dir ./logs \
+      --port $PORT && echo "done"
+
+elif [ $MODEL == $MUSE_GLIMMER_30B ]; then
+  sudo docker run --gpus all --rm -it --pull always \
+    --runtime=nvidia \
+    --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v ~/.model_logs/llama_server:/logs \
+    -v ~/.cache/huggingface:/data/models/huggingface \
+    ghcr.io/nvidia-ai-iot/llama_cpp:latest-jetson-orin \
+    llama-server \
+      -hf meta-models/Muse-Glimmer-30B-GGUF \
+      -hff Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf \
+      --spec-type draft-dflash \
+      --n-gpu-layers 999 \
+      --spec-draft-ngl 999 \
+      --ctx-size 131072 \
+      --flash-attn on \
+      --parallel 1 \
+      --jinja \
+      --temp 1.0 \
+      --top-p 0.95 \
+      --top-k 64 \
+      --port $PORT && echo "done"
+
+elif [ $MODEL == $NEMOTRON_3_NANO_OMNI ]; then
+
+  sudo docker run --gpus all --rm -it --pull always \
+    --runtime=nvidia \
+    --network host \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v ~/.model_logs/llama_server:/logs \
+    -v ~/.cache/huggingface:/data/models/huggingface \
+    ghcr.io/nvidia-ai-iot/llama_cpp:latest-jetson-orin \
+    llama-server \
+      --hf-repo ggml-org/NVIDIA-Nemotron-3-Nano-Omni-30B-A3B-GGUF \
+      --hf-file NVIDIA-Nemotron-3-Nano-Omni-30B-A3B-Q4_K_M.gguf \
+      --ctx-size 8192 \
+      --alias my_model \
+      --n-gpu-layers 999 \
+      --port $PORT && echo "done"
 
 else
   echo "Invalid model selection: $MODEL"

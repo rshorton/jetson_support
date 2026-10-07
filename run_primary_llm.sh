@@ -374,7 +374,8 @@ elif [ $MODEL == $GEMMA_4_26B_VLLM_JP72 ]; then
     -v $HOME/dev/torch_compile_cache:/root/.cache/vllm/torch_compile_cache \
     -v ~/.cache/huggingface:/root/.cache/huggingface \
     -v ~/.cache/vllm:/root/.cache/vllm \
-    vllm/vllm-openai:latest NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16 \
+    vllm/vllm-openai@sha256:c1c9f6fd5c109ba7f0546a59f5b2f15fb87f64c77782e90a27b648b42a8e67c3 \
+    NeoChen1024/gemma-4-26B-A4B-it-qat-W4A16 \
     --gpu-memory-utilization 0.5 \
     --max-model-len 64000 \
     --trust-remote-code \
